@@ -14,3 +14,36 @@ datasource db {
   url      = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+
+model Category {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  isSystem  Boolean       @default(false)  // true for seeded defaults like Miscellaneous, prevents accidental deletion
+  createdAt DateTime      @default(now())
+  transactions Transaction[]
+}
+
+enum TransactionType {
+  SEND_MONEY
+  PAYBILL
+  TILL
+  WITHDRAWAL
+  AIRTIME
+}
+
+model Transaction {
+  id              String           @id @default(cuid())
+  mpesaCode       String           @unique
+  amount          Decimal          @db.Decimal(10, 2)
+  type            TransactionType
+  counterparty    String
+  categoryId      String?          // null = uncategorized, needs review
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  description     String?
+  rawSms          String
+  transactionDate DateTime
+  createdAt       DateTime         @default(now())
+
+  @@index([categoryId])
+  @@index([transactionDate])
+}
