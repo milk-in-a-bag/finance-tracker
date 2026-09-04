@@ -24,9 +24,8 @@ model Category {
 }
 
 enum TransactionType {
-  SEND_MONEY
+  SENT
   PAYBILL
-  TILL
   WITHDRAWAL
   AIRTIME
 }
@@ -37,6 +36,7 @@ model Transaction {
   amount          Decimal          @db.Decimal(10, 2)
   type            TransactionType
   counterparty    String
+  account         String?
   categoryId      String?          // null = uncategorized, needs review
   category        Category?        @relation(fields: [categoryId], references: [id])
   description     String?
