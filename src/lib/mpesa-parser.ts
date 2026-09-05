@@ -36,14 +36,20 @@ function parseDateTime(dateStr: string, timeStr: string): Date {
   const [day, month, yearShort] = dateStr.split("/").map(Number);
   const year = 2000 + yearShort;
 
-  const [, hourStr, minStr, meridiem] = timeStr.match(
-    /(\d{1,2}):(\d{2})\s*([AP]M)/i,
-  )!;
-  let hour = parseInt(hourStr, 10);
-  if (meridiem.toUpperCase() === "PM" && hour !== 12) hour += 12;
-  if (meridiem.toUpperCase() === "AM" && hour === 12) hour = 0;
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*([AP]M)/i)!;
+  let hour = parseInt(match[1], 10);
+  const minute = match[2];
+  const meridiem = match[3].toUpperCase();
+  if (meridiem === "PM" && hour !== 12) hour += 12;
+  if (meridiem === "AM" && hour === 12) hour = 0;
 
-  return new Date(year, month - 1, day, hour, parseInt(minStr, 10));
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  // M-Pesa SMS timestamps are always East Africa Time (UTC+3, no DST) —
+  // hardcode the offset so this is correct regardless of server timezone.
+  return new Date(
+    `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${minute}:00+03:00`,
+  );
 }
 
 export function parseMpesaSms(text: string): ParseResult {

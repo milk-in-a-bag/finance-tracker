@@ -115,3 +115,37 @@ describe("parseMpesaSms", () => {
     expect(result.status).toBe("unparsed");
   });
 });
+
+it("correctly converts 12:00 PM to noon (not midnight)", () => {
+  const result = parseMpesaSms(
+    "ABC123 Confirmed. Ksh10.00 sent to Test Person on 1/1/26 at 12:00 PM. New M-PESA balance is Ksh0.00.",
+  );
+  expect(result.status).toBe("parsed");
+  if (result.status !== "parsed") return;
+  expect(result.data.transactionDate.toISOString()).toBe(
+    "2026-01-01T09:00:00.000Z",
+  );
+});
+
+it("correctly converts 12:00 AM to midnight (not noon)", () => {
+  const result = parseMpesaSms(
+    "ABC124 Confirmed. Ksh10.00 sent to Test Person on 1/1/26 at 12:00 AM. New M-PESA balance is Ksh0.00.",
+  );
+  expect(result.status).toBe("parsed");
+  if (result.status !== "parsed") return;
+  expect(result.data.transactionDate.toISOString()).toBe(
+    "2025-12-31T21:00:00.000Z",
+  );
+});
+
+it("marks a message as unparsed when it has an expense marker but no recognizable M-Pesa code prefix", () => {
+  const result = parseMpesaSms(
+    "This message has sent to somewhere in it but no valid code format at all.",
+  );
+  expect(result.status).toBe("unparsed");
+});
+
+it("ignores empty or whitespace-only input without throwing", () => {
+  expect(parseMpesaSms("").status).toBe("ignored");
+  expect(parseMpesaSms("   ").status).toBe("ignored");
+});

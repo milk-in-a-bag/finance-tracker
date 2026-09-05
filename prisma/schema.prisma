@@ -47,3 +47,10 @@ model Transaction {
   @@index([categoryId])
   @@index([transactionDate])
 }
+
+model UnparsedMessage {
+  id         String   @id @default(cuid())
+  rawSms     String
+  receivedAt DateTime @default(now())
+  resolved   Boolean  @default(false)
+}
