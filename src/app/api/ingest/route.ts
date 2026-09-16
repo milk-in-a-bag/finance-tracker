@@ -35,6 +35,10 @@ export async function POST(req: NextRequest) {
 
   // result.status === "parsed"
   try {
+    const rule = await prisma.counterpartyRule.findUnique({
+      where: { counterparty: result.data.counterparty },
+    });
+
     const transaction = await prisma.transaction.create({
       data: {
         mpesaCode: result.data.mpesaCode,
@@ -44,10 +48,11 @@ export async function POST(req: NextRequest) {
         account: result.data.account,
         transactionDate: result.data.transactionDate,
         rawSms: message,
+        categoryId: rule?.categoryId ?? null,
       },
     });
     return NextResponse.json(
-      { status: "parsed", id: transaction.id },
+      { status: "parsed", id: transaction.id, autoCategorized: !!rule },
       { status: 201 },
     );
   } catch (err) {

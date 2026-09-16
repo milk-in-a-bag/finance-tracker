@@ -15,12 +15,21 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model CounterpartyRule {
+  id           String   @id @default(cuid())
+  counterparty String   @unique
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
 model Category {
   id        String        @id @default(cuid())
   name      String        @unique
   isSystem  Boolean       @default(false)  // true for seeded defaults like Miscellaneous, prevents accidental deletion
   createdAt DateTime      @default(now())
   transactions Transaction[]
+  counterpartyRules CounterpartyRule[]
 }
 
 enum TransactionType {
