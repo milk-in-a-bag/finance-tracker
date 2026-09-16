@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Prisma } from "../../../generated/prisma/client";
+import { PrismaClient, Prisma } from "@/generated/prisma/client";
 import { parseMpesaSms } from "@/lib/mpesa-parser";
+import { resolveCategoryId } from "@/lib/categorize";
 
 const prisma = new PrismaClient();
 
