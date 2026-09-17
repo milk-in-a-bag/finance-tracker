@@ -2,8 +2,44 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient, Prisma } from "@/generated/prisma/client";
 import { parseMpesaSms } from "@/lib/mpesa-parser";
 import { resolveCategoryId } from "@/lib/categorize";
+import webpush from "web-push";
 
 const prisma = new PrismaClient();
+
+webpush.setVapidDetails(
+  process.env.VAPID_SUBJECT!,
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+  process.env.VAPID_PRIVATE_KEY!,
+);
+
+async function sendPushToAll(title: string, body: string) {
+  const subscriptions = await prisma.pushSubscription.findMany();
+
+  await Promise.allSettled(
+    subscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
+          JSON.stringify({ title, body }),
+        );
+      } catch (err) {
+        // 410 Gone / 404 means this subscription is no longer valid (user cleared browser data, etc.)
+        if (
+          err instanceof Error &&
+          "statusCode" in err &&
+          (err.statusCode === 410 || err.statusCode === 404)
+        ) {
+          await prisma.pushSubscription.delete({ where: { id: sub.id } });
+        } else {
+          console.error("Push send failed:", err);
+        }
+      }
+    }),
+  );
+}
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get("x-webhook-secret");
@@ -52,6 +88,12 @@ export async function POST(req: NextRequest) {
         categoryId: rule?.categoryId ?? null,
       },
     });
+
+    await sendPushToAll(
+      "New Transaction",
+      `Ksh ${result.data.amount} to ${result.data.counterparty}`,
+    );
+
     return NextResponse.json(
       { status: "parsed", id: transaction.id, autoCategorized: !!rule },
       { status: 201 },

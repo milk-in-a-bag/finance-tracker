@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CategorySelector } from "@/components/web/category-slector";
+import { PushRegistration } from "@/components/web/push-registration";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
 
@@ -36,6 +37,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <PushRegistration />
+
       <h1 className="text-2xl font-semibold">Finance Dashboard</h1>
 
       <Card>
