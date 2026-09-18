@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { parseMpesaSms } from "@/lib/mpesa-parser";
-import { resolveCategoryId } from "@/lib/categorize";
+import { prisma } from "@/lib/db";
 import webpush from "web-push";
-
-const prisma = new PrismaClient();
 
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT!,
