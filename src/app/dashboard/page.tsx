@@ -99,7 +99,7 @@ export default async function DashboardPage() {
                   transactionDate: string;
                   counterparty: string;
                   type: string;
-                  category: { name: string } | null;
+                  category: { id: string; name: string } | null;
                   amount: string;
                 }) => (
                   <TableRow key={t.id}>
@@ -111,14 +111,11 @@ export default async function DashboardPage() {
                       <Badge variant="secondary">{t.type}</Badge>
                     </TableCell>
                     <TableCell>
-                      {t.category ? (
-                        t.category.name
-                      ) : (
-                        <CategorySelector
-                          transactionId={t.id}
-                          categories={categories}
-                        />
-                      )}
+                      <CategorySelector
+                        transactionId={t.id}
+                        categories={categories}
+                        currentCategoryId={t.category?.id}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       Ksh {Number(t.amount).toFixed(2)}
