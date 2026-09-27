@@ -10,11 +10,16 @@ import {
 } from "@/components/ui/table";
 import { CategorySelector } from "@/components/web/category-slector";
 import { PushRegistration } from "@/components/web/push-registration";
+import { PeriodSwitcher } from "@/components/web/period-switcher";
+import { CategoryBarChart } from "@/components/web/category-bar-chart";
+import { SpendingTimeChart } from "@/components/web/spending-time-chart";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-async function getSummary() {
-  const res = await fetch(`${baseUrl}/api/summary`, { cache: "no-store" });
+async function getSummary(period: string) {
+  const res = await fetch(`${baseUrl}/api/summary?period=${period}`, {
+    cache: "no-store",
+  });
   return res.json();
 }
 
@@ -28,9 +33,15 @@ async function getCategories() {
   return res.json();
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
+  const { period = "month" } = await searchParams;
+
   const [summary, { transactions }, { categories }] = await Promise.all([
-    getSummary(),
+    getSummary(period),
     getTransactions(),
     getCategories(),
   ]);
@@ -39,7 +50,10 @@ export default async function DashboardPage() {
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <PushRegistration />
 
-      <h1 className="text-2xl font-semibold">Finance Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Finance Dashboard</h1>
+        <PeriodSwitcher current={period} />
+      </div>
 
       <Card>
         <CardHeader>
@@ -54,26 +68,19 @@ export default async function DashboardPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Spending Over Time</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SpendingTimeChart data={summary.timeSeries} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>By Category</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {summary.byCategory.map(
-            (c: {
-              categoryId: string | null;
-              categoryName: string;
-              total: string;
-            }) => (
-              <div
-                key={c.categoryId ?? "uncategorized"}
-                className="flex justify-between"
-              >
-                <span>{c.categoryName}</span>
-                <span className="font-medium">
-                  Ksh {Number(c.total).toFixed(2)}
-                </span>
-              </div>
-            ),
-          )}
+        <CardContent>
+          <CategoryBarChart data={summary.byCategory} />
         </CardContent>
       </Card>
 
