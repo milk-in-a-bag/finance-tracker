@@ -47,10 +47,10 @@ export default async function DashboardPage({
   ]);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 sm:p-6 space-y-6">
       <PushRegistration />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Finance Dashboard</h1>
         <PeriodSwitcher current={period} />
       </div>
@@ -89,49 +89,51 @@ export default async function DashboardPage({
           <CardTitle>Recent Transactions</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Counterparty</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.map(
-                (t: {
-                  id: string;
-                  transactionDate: string;
-                  counterparty: string;
-                  type: string;
-                  category: { id: string; name: string } | null;
-                  amount: string;
-                }) => (
-                  <TableRow key={t.id}>
-                    <TableCell>
-                      {new Date(t.transactionDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{t.counterparty}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{t.type}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <CategorySelector
-                        transactionId={t.id}
-                        categories={categories}
-                        currentCategoryId={t.category?.id}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      Ksh {Number(t.amount).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ),
-              )}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[640px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Counterparty</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map(
+                  (t: {
+                    id: string;
+                    transactionDate: string;
+                    counterparty: string;
+                    type: string;
+                    category: { id: string; name: string } | null;
+                    amount: string;
+                  }) => (
+                    <TableRow key={t.id}>
+                      <TableCell>
+                        {new Date(t.transactionDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>{t.counterparty}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{t.type}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <CategorySelector
+                          transactionId={t.id}
+                          categories={categories}
+                          currentCategoryId={t.category?.id}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        Ksh {Number(t.amount).toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ),
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

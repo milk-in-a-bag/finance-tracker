@@ -10,7 +10,7 @@ const PERIODS = [
 
 export function PeriodSwitcher({ current }: { current: string }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1">
       {PERIODS.map((p) => (
         <Link
           key={p.value}
