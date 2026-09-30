@@ -18,9 +18,13 @@ export function CategoryBarChart({
   data: { categoryName: string; total: number }[];
 }) {
   return (
-    <ChartContainer config={chartConfig} className="h-[280px] w-full block">
-      <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-        <CartesianGrid vertical={false} />
+    <ChartContainer config={chartConfig} className="h-[220px] w-full block">
+      <BarChart data={data} margin={{ top: 5, right: 4, left: 0, bottom: 5 }}>
+        <CartesianGrid
+          vertical={false}
+          stroke="var(--border)"
+          strokeOpacity={0.4}
+        />
         <XAxis
           dataKey="categoryName"
           tickLine={false}
@@ -29,11 +33,20 @@ export function CategoryBarChart({
           interval={0}
           angle={-30}
           textAnchor="end"
-          height={60}
+          height={56}
+          tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
         />
-        <YAxis tickLine={false} axisLine={false} />
-        <ChartTooltip content={<ChartTooltipContent />} />
-        <Bar dataKey="total" fill="var(--color-total)" radius={4} />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+          width={44}
+        />
+        <ChartTooltip
+          cursor={{ fill: "var(--accent)", opacity: 0.35 }}
+          content={<ChartTooltipContent />}
+        />
+        <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ChartContainer>
   );

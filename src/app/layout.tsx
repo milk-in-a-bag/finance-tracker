@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SidebarNav } from "@/components/web/sidebar-nav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#182333",
+  themeColor: "#0f1623",
 };
 
 export default function RootLayout({
@@ -31,7 +32,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <div className="flex min-h-screen bg-background">
+          <SidebarNav />
+          <div className="flex-1 flex flex-col min-w-0">{children}</div>
+        </div>
       </body>
     </html>
   );

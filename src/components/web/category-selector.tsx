@@ -36,7 +36,7 @@ export function CategorySelector({
     if (!categoryId) return;
 
     const previous = value;
-    setValue(categoryId); // optimistic, so the label updates instantly
+    setValue(categoryId);
     setIsSaving(true);
     setError(null);
     try {
@@ -48,8 +48,8 @@ export function CategorySelector({
       if (!res.ok) throw new Error("Request failed");
       router.refresh();
     } catch {
-      setValue(previous); // roll back if the save actually failed
-      setError("Failed to save, try again.");
+      setValue(previous);
+      setError("Failed to save");
     } finally {
       setIsSaving(false);
     }
@@ -59,19 +59,23 @@ export function CategorySelector({
     <div>
       <Select value={value} onValueChange={handleChange} disabled={isSaving}>
         <SelectTrigger
-          className={`w-[160px] ${!value ? "border-destructive text-destructive" : ""}`}
+          className={`h-7 text-xs w-[140px] border transition-colors ${
+            !value
+              ? "border-destructive/60 text-destructive bg-destructive/5"
+              : "border-border/60 bg-transparent hover:border-border"
+          } ${isSaving ? "opacity-60" : ""}`}
         >
-          <SelectValue placeholder="Categorize...">{selectedName}</SelectValue>
+          <SelectValue placeholder="Categorize…">{selectedName}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {categories.map((c) => (
-            <SelectItem key={c.id} value={c.id}>
+            <SelectItem key={c.id} value={c.id} className="text-xs">
               {c.name}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
     </div>
   );
 }
