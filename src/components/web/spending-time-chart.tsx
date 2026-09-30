@@ -12,11 +12,20 @@ const chartConfig = {
   total: { label: "Spend (Ksh)", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
+function buildTicks(data: { total: number }[]): number[] {
+  const max = Math.max(...data.map((d) => d.total), 0);
+  const top = Math.ceil(max / 100) * 100;
+  const ticks: number[] = [];
+  for (let i = 0; i <= top; i += 100) ticks.push(i);
+  return ticks;
+}
+
 export function SpendingTimeChart({
   data,
 }: {
   data: { label: string; total: number }[];
 }) {
+  const ticks = buildTicks(data);
   return (
     <ChartContainer config={chartConfig} className="h-[220px] w-full">
       <AreaChart data={data} margin={{ top: 5, right: 4, left: 0, bottom: 5 }}>
@@ -47,6 +56,8 @@ export function SpendingTimeChart({
           axisLine={false}
           tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
           width={44}
+          ticks={ticks}
+          domain={[0, ticks[ticks.length - 1]]}
         />
         <ChartTooltip content={<ChartTooltipContent />} />
         <Area
