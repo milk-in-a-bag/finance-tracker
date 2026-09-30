@@ -82,13 +82,14 @@ export default async function DashboardPage({
           <StatCard
             label="Total Spend"
             value={`Ksh ${summary.overallTotal.toFixed(2)}`}
-            sub="this period"
+            prev={summary.previousTotal}
+            current={summary.overallTotal}
             accent="primary"
           />
           <StatCard
             label="Transactions"
             value={String(transactions.length)}
-            sub="all time"
+            sub="this period"
             accent="teal"
           />
           <StatCard
@@ -228,13 +229,26 @@ function StatCard({
   value,
   sub,
   accent = "primary",
+  current,
+  prev,
 }: {
   label: string;
   value: string;
-  sub: string;
+  sub?: string;
   accent?: string;
+  current?: number;
+  prev?: number;
 }) {
   const a = ACCENT_CLASSES[accent] ?? ACCENT_CLASSES.primary;
+
+  let delta: number | null = null;
+  if (current != null && prev != null && prev > 0) {
+    delta = ((current - prev) / prev) * 100;
+  } else if (current != null && prev != null && prev === 0 && current > 0) {
+    // Previous period had no spend — treat as new spending
+    delta = 100;
+  }
+
   return (
     <div className="bg-card border border-border/60 rounded-xl px-5 py-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -244,7 +258,29 @@ function StatCard({
         <span className={`w-2 h-2 rounded-full ${a.dot}`} />
       </div>
       <p className={`text-2xl font-bold tracking-tight ${a.text}`}>{value}</p>
-      <p className="text-xs text-muted-foreground">{sub}</p>
+      <div className="flex items-center gap-2">
+        {delta !== null ? (
+          <span
+            className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
+              delta <= 0 ? "text-emerald-400" : "text-rose-400"
+            }`}
+          >
+            {delta <= 0 ? (
+              <svg viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                <path d="M8,12 L2,5 L14,5 Z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                <path d="M8,4 L14,11 L2,11 Z" />
+              </svg>
+            )}
+            {Math.abs(delta).toFixed(1)}%
+          </span>
+        ) : null}
+        <span className="text-xs text-muted-foreground">
+          {delta !== null ? "vs last period" : (sub ?? "this period")}
+        </span>
+      </div>
     </div>
   );
 }

@@ -41,6 +41,58 @@ function getPeriodStart(period: string): Date | null {
   return null; // "all"
 }
 
+// Returns the [start, end) of the previous equivalent period in UTC.
+function getPreviousPeriodRange(
+  period: string,
+): { start: Date; end: Date } | null {
+  const nowEat = toEat(new Date());
+
+  if (period === "today") {
+    const todayStartEat = Date.UTC(
+      nowEat.getUTCFullYear(),
+      nowEat.getUTCMonth(),
+      nowEat.getUTCDate(),
+    );
+    const end = new Date(todayStartEat - EAT_OFFSET_MS);
+    const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+    return { start, end };
+  }
+  if (period === "week") {
+    const day = nowEat.getUTCDay();
+    const diffToMonday = day === 0 ? 6 : day - 1;
+    const thisWeekStartEat = Date.UTC(
+      nowEat.getUTCFullYear(),
+      nowEat.getUTCMonth(),
+      nowEat.getUTCDate() - diffToMonday,
+    );
+    const end = new Date(thisWeekStartEat - EAT_OFFSET_MS);
+    const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return { start, end };
+  }
+  if (period === "month") {
+    // Previous calendar month
+    const prevMonthEat = new Date(
+      Date.UTC(nowEat.getUTCFullYear(), nowEat.getUTCMonth() - 1, 1),
+    );
+    const start = new Date(prevMonthEat.getTime() - EAT_OFFSET_MS);
+    const end = new Date(
+      Date.UTC(nowEat.getUTCFullYear(), nowEat.getUTCMonth(), 1) -
+        EAT_OFFSET_MS,
+    );
+    return { start, end };
+  }
+  if (period === "year") {
+    const start = new Date(
+      Date.UTC(nowEat.getUTCFullYear() - 1, 0, 1) - EAT_OFFSET_MS,
+    );
+    const end = new Date(
+      Date.UTC(nowEat.getUTCFullYear(), 0, 1) - EAT_OFFSET_MS,
+    );
+    return { start, end };
+  }
+  return null;
+}
+
 // Groups a transaction date into a chart bucket, in EAT wall-clock terms.
 function getBucket(
   period: string,
@@ -81,13 +133,29 @@ function getBucket(
 export async function GET(req: NextRequest) {
   const period = req.nextUrl.searchParams.get("period") ?? "month";
   const start = getPeriodStart(period);
+  const prevRange = getPreviousPeriodRange(period);
 
-  const transactions = await prisma.transaction.findMany({
-    where: start ? { transactionDate: { gte: start } } : {},
-    include: { category: true },
-  });
+  const [transactions, prevTransactions] = await Promise.all([
+    prisma.transaction.findMany({
+      where: start ? { transactionDate: { gte: start } } : {},
+      include: { category: true },
+    }),
+    prevRange
+      ? prisma.transaction.findMany({
+          where: {
+            transactionDate: { gte: prevRange.start, lt: prevRange.end },
+          },
+          select: { amount: true },
+        })
+      : Promise.resolve([]),
+  ]);
 
   const overallTotal = transactions.reduce(
+    (sum, t) => sum + Number(t.amount),
+    0,
+  );
+
+  const previousTotal = prevTransactions.reduce(
     (sum, t) => sum + Number(t.amount),
     0,
   );
@@ -120,6 +188,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     overallTotal,
+    previousTotal,
     byCategory: [...byCategoryMap.values()],
     timeSeries,
     period,
