@@ -159,6 +159,8 @@ export async function GET(req: NextRequest) {
     (sum, t) => sum + Number(t.amount),
     0,
   );
+  const previousCount = prevTransactions.length;
+  const previousAvg = previousCount > 0 ? previousTotal / previousCount : 0;
 
   const byCategoryMap = new Map<
     string,
@@ -189,6 +191,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     overallTotal,
     previousTotal,
+    previousCount,
+    previousAvg,
     byCategory: [...byCategoryMap.values()],
     timeSeries,
     period,
