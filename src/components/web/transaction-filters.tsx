@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useTransition } from "react";
 
-const TYPES = ["SENT", "RECEIVED", "PAYBILL", "AIRTIME", "WITHDRAWAL"];
+const TYPES = ["SENT", "PAYBILL", "AIRTIME", "WITHDRAWAL"];
 
 type Category = { id: string; name: string };
 
@@ -68,7 +68,9 @@ export function TransactionFilters({ categories }: { categories: Category[] }) {
       >
         <option value="">All types</option>
         {TYPES.map((t) => (
-          <option key={t} value={t}>{t}</option>
+          <option key={t} value={t}>
+            {t}
+          </option>
         ))}
       </select>
 
@@ -81,7 +83,9 @@ export function TransactionFilters({ categories }: { categories: Category[] }) {
         <option value="">All categories</option>
         <option value="uncategorized">Uncategorized</option>
         {categories.map((c) => (
-          <option key={c.id} value={c.id}>{c.name}</option>
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
         ))}
       </select>
 

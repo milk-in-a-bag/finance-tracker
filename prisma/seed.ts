@@ -9,6 +9,7 @@ const DEFAULT_CATEGORIES = [
   "Bills",
   "Airtime",
   "Entertainment",
+  "Friends & Family",
   "Miscellaneous",
 ];
 

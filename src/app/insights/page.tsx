@@ -1,3 +1,6 @@
+import { SpendByTypeChart } from "@/components/web/spend-by-type-chart";
+import { ActivityByDayChart } from "@/components/web/activity-by-day-chart";
+
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
 
 type TopSpend = {
@@ -43,7 +46,6 @@ type RecurringItem = {
 
 const TYPE_STYLES: Record<string, string> = {
   SENT: "bg-rose-500/15 text-rose-400 border-rose-500/20",
-  RECEIVED: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
   PAYBILL: "bg-blue-500/15 text-blue-400 border-blue-500/20",
   AIRTIME: "bg-violet-500/15 text-violet-400 border-violet-500/20",
   WITHDRAWAL: "bg-amber-500/15 text-amber-400 border-amber-500/20",
@@ -61,15 +63,6 @@ export default async function InsightsPage() {
     uncategorizedCount = 0,
     totalTransactions = 0,
   } = await res.json();
-
-  const maxDayCount = Math.max(
-    ...(busiestDay as DayStats[]).map((d) => d.count),
-    1,
-  );
-  const maxTypeTotal = Math.max(
-    ...(spendByType as SpendByType[]).map((t) => t.total),
-    1,
-  );
 
   return (
     <>
@@ -218,64 +211,18 @@ export default async function InsightsPage() {
 
         {/* ── Row 2: Spend by type + Busiest day ────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* Spend by type */}
           <div className="bg-card border border-border/60 rounded-xl p-5">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
               Spend by Transaction Type
             </p>
-            <div className="space-y-3">
-              {spendByType.map((s: SpendByType) => (
-                <div key={s.type}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${TYPE_STYLES[s.type] ?? "bg-muted text-muted-foreground border-border"}`}
-                      >
-                        {s.type}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {s.count} txns
-                      </span>
-                    </div>
-                    <span className="text-xs font-semibold tabular-nums">
-                      Ksh {s.total.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${(s.total / maxTypeTotal) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <SpendByTypeChart data={spendByType} />
           </div>
 
-          {/* Busiest day of the week */}
           <div className="bg-card border border-border/60 rounded-xl p-5">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
               Activity by Day of Week
             </p>
-            <div className="space-y-3">
-              {(busiestDay as DayStats[]).map((d) => (
-                <div key={d.day}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium w-24">{d.day}</span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {d.count} txn{d.count !== 1 ? "s" : ""}
-                      {d.total > 0 && ` · Ksh ${d.total.toFixed(0)}`}
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-teal-500 transition-all"
-                      style={{ width: `${(d.count / maxDayCount) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ActivityByDayChart data={busiestDay} />
           </div>
         </div>
 

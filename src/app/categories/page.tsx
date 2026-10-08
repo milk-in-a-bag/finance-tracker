@@ -1,3 +1,5 @@
+import { AddCategoryForm } from "@/components/web/add-category-form";
+
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
 
 type Category = {
@@ -36,20 +38,38 @@ export default async function CategoriesPage() {
       </header>
 
       <main className="flex-1 px-6 py-6 space-y-6">
+        {/* Add category form */}
+        <div className="bg-card border border-border/60 rounded-xl px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+            Add Category
+          </p>
+          <AddCategoryForm />
+        </div>
         {/* Summary row */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="bg-card border border-border/60 rounded-xl px-5 py-4">
-            <p className="text-xs text-muted-foreground mb-1">Total Categories</p>
-            <p className="text-2xl font-bold text-primary">{categories.length}</p>
-          </div>
-          <div className="bg-card border border-border/60 rounded-xl px-5 py-4">
-            <p className="text-xs text-muted-foreground mb-1">Auto-assign Rules</p>
-            <p className="text-2xl font-bold text-teal-400">
-              {categories.reduce((sum, c) => sum + (c._count?.counterpartyRules ?? 0), 0)}
+            <p className="text-xs text-muted-foreground mb-1">
+              Total Categories
+            </p>
+            <p className="text-2xl font-bold text-primary">
+              {categories.length}
             </p>
           </div>
           <div className="bg-card border border-border/60 rounded-xl px-5 py-4">
-            <p className="text-xs text-muted-foreground mb-1">Categorized Txns</p>
+            <p className="text-xs text-muted-foreground mb-1">
+              Auto-assign Rules
+            </p>
+            <p className="text-2xl font-bold text-teal-400">
+              {categories.reduce(
+                (sum, c) => sum + (c._count?.counterpartyRules ?? 0),
+                0,
+              )}
+            </p>
+          </div>
+          <div className="bg-card border border-border/60 rounded-xl px-5 py-4">
+            <p className="text-xs text-muted-foreground mb-1">
+              Categorized Txns
+            </p>
             <p className="text-2xl font-bold text-amber-400">{total}</p>
           </div>
         </div>
@@ -64,10 +84,18 @@ export default async function CategoriesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/60">
-                <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">Name</th>
-                <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3">Transactions</th>
-                <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3">Auto-rules</th>
-                <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3">% of total</th>
+                <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">
+                  Name
+                </th>
+                <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3">
+                  Transactions
+                </th>
+                <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3">
+                  Auto-rules
+                </th>
+                <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3">
+                  % of total
+                </th>
               </tr>
             </thead>
             <tbody>

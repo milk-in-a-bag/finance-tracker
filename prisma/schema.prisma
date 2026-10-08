@@ -49,7 +49,6 @@ model Transaction {
   account         String?
   categoryId      String?          // null = uncategorized, needs review
   category        Category?        @relation(fields: [categoryId], references: [id])
-  description     String?
   rawSms          String
   transactionDate DateTime
   createdAt       DateTime         @default(now())
