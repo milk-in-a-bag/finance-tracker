@@ -46,12 +46,12 @@ export function SpendByTypeChart({ data }: { data: SpendByType[] }) {
           axisLine={false}
           width={80}
           tick={(props: {
-            x: number;
-            y: number;
+            x: string | number;
+            y: string | number;
             payload: { value: string };
           }) => (
             <text
-              x={props.x - 76}
+              x={Number(props.x) - 76}
               y={props.y}
               dy={4}
               textAnchor="start"
@@ -85,7 +85,7 @@ export function SpendByTypeChart({ data }: { data: SpendByType[] }) {
             dataKey="total"
             position="right"
             style={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-            formatter={(v: number) => `Ksh ${v.toLocaleString()}`}
+            formatter={(v) => `Ksh ${Number(v).toLocaleString()}`}
           />
         </Bar>
       </BarChart>

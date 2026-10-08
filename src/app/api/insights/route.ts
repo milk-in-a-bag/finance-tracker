@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getPeriodStart } from "@/lib/period";
 
 const DAYS = [
   "Sunday",
@@ -12,22 +13,37 @@ const DAYS = [
 ];
 const EAT_OFFSET_MS = 3 * 60 * 60 * 1000;
 
-export async function GET() {
-  try {
-    const [transactions, unparsedMessages] = await Promise.all([
-      prisma.transaction.findMany({
-        include: { category: true },
-        orderBy: { transactionDate: "desc" },
-      }),
-      prisma.unparsedMessage.findMany({
-        orderBy: { receivedAt: "desc" },
-      }),
-    ]);
+export async function GET(req: NextRequest) {
+  const period = req.nextUrl.searchParams.get("period") ?? "all";
+  const start = getPeriodStart(period);
 
-    // ── Top 5 spends ───────────────────────────────────────────────────────
+  try {
+    const [transactions, allTransactions, unparsedMessages] = await Promise.all(
+      [
+        // Period-scoped transactions (for most insights)
+        prisma.transaction.findMany({
+          where: start ? { transactionDate: { gte: start } } : {},
+          include: { category: true },
+          orderBy: { transactionDate: "desc" },
+        }),
+        // All-time transactions (for recurring detection)
+        prisma.transaction.findMany({
+          include: { category: true },
+          orderBy: { transactionDate: "asc" },
+        }),
+        prisma.unparsedMessage.findMany({
+          orderBy: { receivedAt: "desc" },
+        }),
+      ],
+    );
+
+    // ── First transaction date (for "since" label) ─────────────────────────
+    const firstTransactionDate = allTransactions[0]?.transactionDate ?? null;
+
+    // ── Top 3 spends ───────────────────────────────────────────────────────
     const topSpends = [...transactions]
       .sort((a, b) => Number(b.amount) - Number(a.amount))
-      .slice(0, 5)
+      .slice(0, 3)
       .map((t) => ({
         id: t.id,
         counterparty: t.counterparty,
@@ -37,7 +53,7 @@ export async function GET() {
         transactionDate: t.transactionDate,
       }));
 
-    // ── Counterparty aggregation (used by multiple insights) ───────────────
+    // ── Counterparty aggregation (period-scoped) ───────────────────────────
     const counterpartyMap = new Map<
       string,
       { counterparty: string; total: number; count: number }
@@ -53,22 +69,23 @@ export async function GET() {
       counterpartyMap.set(t.counterparty, e);
     }
 
-    // ── Top 5 counterparties by total spend ────────────────────────────────
+    // ── Top 3 counterparties by total spend ────────────────────────────────
     const topCounterparties = [...counterpartyMap.values()]
       .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
+      .slice(0, 3);
 
-    // ── Concentration: top-3 payees share of overall spend ────────────────
+    // ── Concentration: top-3 payees share of period spend ─────────────────
     const overallTotal = transactions.reduce(
       (sum, t) => sum + Number(t.amount),
       0,
     );
-    const top3Total = [...counterpartyMap.values()]
-      .sort((a, b) => b.total - a.total)
+    const sortedCounterparties = [...counterpartyMap.values()].sort(
+      (a, b) => b.total - a.total,
+    );
+    const top3Total = sortedCounterparties
       .slice(0, 3)
       .reduce((sum, c) => sum + c.total, 0);
-    const top3Names = [...counterpartyMap.values()]
-      .sort((a, b) => b.total - a.total)
+    const top3Names = sortedCounterparties
       .slice(0, 3)
       .map((c) => c.counterparty);
     const concentrationPct =
@@ -87,10 +104,10 @@ export async function GET() {
     }
     const spendByType = [...typeMap.values()].sort((a, b) => b.total - a.total);
 
-    // ── Busiest day of the week (by transaction count, EAT) ───────────────
+    // ── Busiest day of the week (always all-time, EAT) ────────────────────
     const dayCount = new Array(7).fill(0) as number[];
     const dayTotal = new Array(7).fill(0) as number[];
-    for (const t of transactions) {
+    for (const t of allTransactions) {
       const eat = new Date(
         new Date(t.transactionDate).getTime() + EAT_OFFSET_MS,
       );
@@ -104,7 +121,7 @@ export async function GET() {
       total: dayTotal[i],
     }));
 
-    // ── Avg transaction per category ──────────────────────────────────────
+    // ── Avg transaction per category (period-scoped) ───────────────────────
     const catMap = new Map<
       string,
       { category: string; total: number; count: number }
@@ -120,7 +137,22 @@ export async function GET() {
       .map((c) => ({ ...c, avg: c.total / c.count }))
       .sort((a, b) => b.total - a.total);
 
-    // ── Recurring detection ────────────────────────────────────────────────
+    // ── Recurring detection (always all-time) ──────────────────────────────
+    const allCounterpartyMap = new Map<
+      string,
+      { counterparty: string; total: number; count: number }
+    >();
+    for (const t of allTransactions) {
+      const e = allCounterpartyMap.get(t.counterparty) ?? {
+        counterparty: t.counterparty,
+        total: 0,
+        count: 0,
+      };
+      e.total += Number(t.amount);
+      e.count += 1;
+      allCounterpartyMap.set(t.counterparty, e);
+    }
+
     const recurring: {
       counterparty: string;
       count: number;
@@ -128,9 +160,9 @@ export async function GET() {
       category: string | null;
     }[] = [];
 
-    for (const [counterparty, stats] of counterpartyMap.entries()) {
+    for (const [counterparty, stats] of allCounterpartyMap.entries()) {
       if (stats.count < 3) continue;
-      const amounts = transactions
+      const amounts = allTransactions
         .filter((t) => t.counterparty === counterparty)
         .map((t) => Number(t.amount))
         .sort((a, b) => a - b);
@@ -139,7 +171,7 @@ export async function GET() {
         (a) => Math.abs(a - median) / median <= 0.2,
       );
       if (consistent) {
-        const sample = transactions.find(
+        const sample = allTransactions.find(
           (t) => t.counterparty === counterparty,
         );
         recurring.push({
@@ -152,7 +184,7 @@ export async function GET() {
     }
     recurring.sort((a, b) => b.count - a.count);
 
-    // ── Uncategorized count + total ───────────────────────────────────────
+    // ── Uncategorized count + total (period-scoped) ────────────────────────
     const uncategorized = transactions.filter((t) => !t.categoryId);
     const uncategorizedCount = uncategorized.length;
     const uncategorizedTotal = uncategorized.reduce(
@@ -172,6 +204,7 @@ export async function GET() {
       uncategorizedCount,
       uncategorizedTotal,
       totalTransactions: transactions.length,
+      firstTransactionDate,
       unparsedMessages: unparsedMessages.map((m) => ({
         id: m.id,
         rawSms: m.rawSms,

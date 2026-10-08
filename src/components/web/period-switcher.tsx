@@ -6,15 +6,22 @@ const PERIODS = [
   { value: "week", label: "Week" },
   { value: "month", label: "Month" },
   { value: "year", label: "Year" },
+  { value: "all", label: "All time" },
 ];
 
-export function PeriodSwitcher({ current }: { current: string }) {
+export function PeriodSwitcher({
+  current,
+  basePath = "/dashboard",
+}: {
+  current: string;
+  basePath?: string;
+}) {
   return (
     <div className="flex items-center gap-1 bg-muted/50 border border-border/60 rounded-lg p-0.5">
       {PERIODS.map((p) => (
         <Link
           key={p.value}
-          href={`/dashboard?period=${p.value}`}
+          href={`${basePath}?period=${p.value}`}
           className={cn(
             "inline-flex items-center justify-center rounded-md text-xs font-medium h-7 px-3 transition-all",
             p.value === current
