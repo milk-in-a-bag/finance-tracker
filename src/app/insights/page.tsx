@@ -1,5 +1,6 @@
 import { SpendByTypeChart } from "@/components/web/spend-by-type-chart";
 import { ActivityByDayChart } from "@/components/web/activity-by-day-chart";
+import { formatCounterparty } from "@/lib/utils";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
 
@@ -44,6 +45,13 @@ type RecurringItem = {
   category: string | null;
 };
 
+type UnparsedMessage = {
+  id: string;
+  rawSms: string;
+  receivedAt: string;
+  resolved: boolean;
+};
+
 const TYPE_STYLES: Record<string, string> = {
   SENT: "bg-rose-500/15 text-rose-400 border-rose-500/20",
   PAYBILL: "bg-blue-500/15 text-blue-400 border-blue-500/20",
@@ -56,23 +64,28 @@ export default async function InsightsPage() {
   const {
     topSpends = [],
     topCounterparties = [],
+    concentrationPct = 0,
+    top3Names = [],
     spendByType = [],
     busiestDay = [],
     avgByCategory = [],
     recurring = [],
     uncategorizedCount = 0,
+    uncategorizedTotal = 0,
     totalTransactions = 0,
+    unparsedMessages = [],
   } = await res.json();
 
   return (
     <>
       <header className="h-14 flex items-center justify-between px-6 border-b border-border/60 bg-card/40 backdrop-blur-sm sticky top-0 z-10">
         <h1 className="text-base font-semibold">Insights</h1>
+        <span className="text-xs text-muted-foreground">All time</span>
       </header>
 
       <main className="flex-1 px-6 py-6 space-y-6">
         {/* ── Summary cards ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-card border border-border/60 rounded-xl px-5 py-4">
             <p className="text-xs text-muted-foreground mb-1">
               Total Transactions
@@ -88,6 +101,11 @@ export default async function InsightsPage() {
             >
               {uncategorizedCount}
             </p>
+            {uncategorizedCount > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Ksh {uncategorizedTotal.toFixed(2)}
+              </p>
+            )}
           </div>
           <div className="bg-card border border-border/60 rounded-xl px-5 py-4">
             <p className="text-xs text-muted-foreground mb-1">
@@ -97,7 +115,65 @@ export default async function InsightsPage() {
               {recurring.length}
             </p>
           </div>
+          <div
+            className={`bg-card border rounded-xl px-5 py-4 ${
+              unparsedMessages.length > 0
+                ? "border-rose-500/40 bg-rose-500/5"
+                : "border-border/60"
+            }`}
+          >
+            <p className="text-xs text-muted-foreground mb-1">
+              Failed to Parse
+            </p>
+            <p
+              className={`text-2xl font-bold ${unparsedMessages.length > 0 ? "text-rose-400" : "text-emerald-400"}`}
+            >
+              {unparsedMessages.length}
+            </p>
+            {unparsedMessages.length > 0 && (
+              <p className="text-xs text-rose-400/70 mt-1">may affect totals</p>
+            )}
+          </div>
         </div>
+
+        {/* ── Unparsed messages ──────────────────────────────────────────── */}
+        {unparsedMessages.length > 0 && (
+          <div className="bg-card border border-rose-500/30 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-rose-500/20 bg-rose-500/5 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-rose-400">
+                  Unparsed Messages
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  These M-Pesa texts looked like expenses but failed to parse —
+                  real spending may be missing from every number on this page.
+                </p>
+              </div>
+              <span className="text-xs text-rose-400 font-semibold shrink-0 ml-4">
+                {unparsedMessages.length} message
+                {unparsedMessages.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <ul className="divide-y divide-border/40">
+              {(unparsedMessages as UnparsedMessage[]).map((m) => (
+                <li key={m.id} className="px-5 py-3 flex flex-col gap-1">
+                  <p className="text-xs font-mono text-muted-foreground break-all leading-relaxed">
+                    {m.rawSms}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/60">
+                    {new Date(m.receivedAt).toLocaleString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* ── Row 1: Top spends + Top payees ────────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -134,7 +210,7 @@ export default async function InsightsPage() {
                         </span>
                         <div>
                           <p className="font-medium truncate max-w-[160px]">
-                            {t.counterparty}
+                            {formatCounterparty(t.counterparty)}
                           </p>
                           {t.category && (
                             <p className="text-xs text-muted-foreground">
@@ -166,6 +242,18 @@ export default async function InsightsPage() {
                 Top 5 Payees by Total Spend
               </p>
             </div>
+            {concentrationPct > 0 && (
+              <div className="px-5 py-3 border-b border-border/60 bg-amber-500/5">
+                <p className="text-xs text-amber-400">
+                  <span className="font-semibold">
+                    {top3Names.slice(0, 3).map(formatCounterparty).join(", ")}
+                  </span>{" "}
+                  account for{" "}
+                  <span className="font-semibold">{concentrationPct}%</span> of
+                  all spending.
+                </p>
+              </div>
+            )}
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/60">
@@ -192,7 +280,7 @@ export default async function InsightsPage() {
                           {i + 1}
                         </span>
                         <span className="font-medium truncate max-w-[180px]">
-                          {c.counterparty}
+                          {formatCounterparty(c.counterparty)}
                         </span>
                       </div>
                     </td>
@@ -317,7 +405,7 @@ export default async function InsightsPage() {
                       className="border-b border-border/40 hover:bg-accent/30 transition-colors"
                     >
                       <td className="px-5 py-3 font-medium truncate max-w-[140px]">
-                        {r.counterparty}
+                        {formatCounterparty(r.counterparty)}
                       </td>
                       <td className="px-3 py-3 text-muted-foreground text-xs">
                         {r.category ?? (

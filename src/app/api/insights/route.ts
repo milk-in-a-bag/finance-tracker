@@ -14,10 +14,15 @@ const EAT_OFFSET_MS = 3 * 60 * 60 * 1000;
 
 export async function GET() {
   try {
-    const transactions = await prisma.transaction.findMany({
-      include: { category: true },
-      orderBy: { transactionDate: "desc" },
-    });
+    const [transactions, unparsedMessages] = await Promise.all([
+      prisma.transaction.findMany({
+        include: { category: true },
+        orderBy: { transactionDate: "desc" },
+      }),
+      prisma.unparsedMessage.findMany({
+        orderBy: { receivedAt: "desc" },
+      }),
+    ]);
 
     // ── Top 5 spends ───────────────────────────────────────────────────────
     const topSpends = [...transactions]
@@ -52,6 +57,22 @@ export async function GET() {
     const topCounterparties = [...counterpartyMap.values()]
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
+
+    // ── Concentration: top-3 payees share of overall spend ────────────────
+    const overallTotal = transactions.reduce(
+      (sum, t) => sum + Number(t.amount),
+      0,
+    );
+    const top3Total = [...counterpartyMap.values()]
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 3)
+      .reduce((sum, c) => sum + c.total, 0);
+    const top3Names = [...counterpartyMap.values()]
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 3)
+      .map((c) => c.counterparty);
+    const concentrationPct =
+      overallTotal > 0 ? Math.round((top3Total / overallTotal) * 100) : 0;
 
     // ── Spend by transaction type ──────────────────────────────────────────
     const typeMap = new Map<
@@ -131,18 +152,32 @@ export async function GET() {
     }
     recurring.sort((a, b) => b.count - a.count);
 
-    // ── Uncategorized count ────────────────────────────────────────────────
-    const uncategorizedCount = transactions.filter((t) => !t.categoryId).length;
+    // ── Uncategorized count + total ───────────────────────────────────────
+    const uncategorized = transactions.filter((t) => !t.categoryId);
+    const uncategorizedCount = uncategorized.length;
+    const uncategorizedTotal = uncategorized.reduce(
+      (sum, t) => sum + Number(t.amount),
+      0,
+    );
 
     return NextResponse.json({
       topSpends,
       topCounterparties,
+      concentrationPct,
+      top3Names,
       spendByType,
       busiestDay,
       avgByCategory,
       recurring,
       uncategorizedCount,
+      uncategorizedTotal,
       totalTransactions: transactions.length,
+      unparsedMessages: unparsedMessages.map((m) => ({
+        id: m.id,
+        rawSms: m.rawSms,
+        receivedAt: m.receivedAt,
+        resolved: m.resolved,
+      })),
     });
   } catch (err) {
     console.error("[insights]", err);

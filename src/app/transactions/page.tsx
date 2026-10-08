@@ -1,5 +1,6 @@
 import { CategorySelector } from "@/components/web/category-selector";
 import { TransactionFilters } from "@/components/web/transaction-filters";
+import { formatCounterparty } from "@/lib/utils";
 
 type TransactionRow = {
   id: string;
@@ -115,7 +116,7 @@ export default async function TransactionsPage({
                         )}
                       </td>
                       <td className="font-medium px-3 py-3 max-w-[240px] truncate">
-                        {t.counterparty}
+                        {formatCounterparty(t.counterparty)}
                       </td>
                       <td className="px-3 py-3">
                         <span

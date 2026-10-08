@@ -13,6 +13,7 @@ import { PeriodSwitcher } from "@/components/web/period-switcher";
 import { CategoryBarChart } from "@/components/web/category-bar-chart";
 import { SpendingTimeChart } from "@/components/web/spending-time-chart";
 import { DeltaBadge } from "@/components/web/delta-badge";
+import { formatCounterparty } from "@/lib/utils";
 
 type TransactionRow = {
   id: string;
@@ -213,7 +214,7 @@ export default async function DashboardPage({
                         )}
                       </TableCell>
                       <TableCell className="font-medium text-sm max-w-[200px] truncate">
-                        {t.counterparty}
+                        {formatCounterparty(t.counterparty)}
                       </TableCell>
                       <TableCell>
                         <span
