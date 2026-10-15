@@ -56,13 +56,19 @@ export async function GET(req: NextRequest) {
     // ── Counterparty aggregation (period-scoped) ───────────────────────────
     const counterpartyMap = new Map<
       string,
-      { counterparty: string; total: number; count: number }
+      {
+        counterparty: string;
+        total: number;
+        count: number;
+        category: string | null;
+      }
     >();
     for (const t of transactions) {
       const e = counterpartyMap.get(t.counterparty) ?? {
         counterparty: t.counterparty,
         total: 0,
         count: 0,
+        category: t.category?.name ?? null,
       };
       e.total += Number(t.amount);
       e.count += 1;
@@ -137,52 +143,16 @@ export async function GET(req: NextRequest) {
       .map((c) => ({ ...c, avg: c.total / c.count }))
       .sort((a, b) => b.total - a.total);
 
-    // ── Recurring detection (always all-time) ──────────────────────────────
-    const allCounterpartyMap = new Map<
-      string,
-      { counterparty: string; total: number; count: number }
-    >();
-    for (const t of allTransactions) {
-      const e = allCounterpartyMap.get(t.counterparty) ?? {
-        counterparty: t.counterparty,
-        total: 0,
-        count: 0,
-      };
-      e.total += Number(t.amount);
-      e.count += 1;
-      allCounterpartyMap.set(t.counterparty, e);
-    }
-
-    const recurring: {
-      counterparty: string;
-      count: number;
-      typicalAmount: number;
-      category: string | null;
-    }[] = [];
-
-    for (const [counterparty, stats] of allCounterpartyMap.entries()) {
-      if (stats.count < 3) continue;
-      const amounts = allTransactions
-        .filter((t) => t.counterparty === counterparty)
-        .map((t) => Number(t.amount))
-        .sort((a, b) => a - b);
-      const median = amounts[Math.floor(amounts.length / 2)];
-      const consistent = amounts.every(
-        (a) => Math.abs(a - median) / median <= 0.2,
-      );
-      if (consistent) {
-        const sample = allTransactions.find(
-          (t) => t.counterparty === counterparty,
-        );
-        recurring.push({
-          counterparty,
-          count: stats.count,
-          typicalAmount: median,
-          category: sample?.category?.name ?? null,
-        });
-      }
-    }
-    recurring.sort((a, b) => b.count - a.count);
+    // ── Recurring payees (2+ transactions in period) ──────────────────────
+    const recurringPayees = [...counterpartyMap.values()]
+      .filter((c) => c.count >= 2)
+      .sort((a, b) => b.count - a.count)
+      .map((c) => ({
+        counterparty: c.counterparty,
+        count: c.count,
+        total: c.total,
+        category: c.category,
+      }));
 
     // ── Uncategorized count + total (period-scoped) ────────────────────────
     const uncategorized = transactions.filter((t) => !t.categoryId);
@@ -200,7 +170,7 @@ export async function GET(req: NextRequest) {
       spendByType,
       busiestDay,
       avgByCategory,
-      recurring,
+      recurringPayees,
       uncategorizedCount,
       uncategorizedTotal,
       totalTransactions: transactions.length,

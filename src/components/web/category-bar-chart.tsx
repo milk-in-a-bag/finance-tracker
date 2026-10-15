@@ -10,23 +10,49 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 
-// One config entry per possible slice — keyed by index so any number of
-// categories gets a colour from the palette automatically.
-const PALETTE = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
+// Stable color per category name — same category always gets the same color
+// regardless of sort order or period.
+// Explicit color assignments per category name for maximum visual distinction.
+// Falls back to a hash-based pick for any category not listed here.
+const CATEGORY_COLORS: Record<string, string> = {
+  Food: "#f97316", // orange
+  "Friends & Family": "#06b6d4", // cyan
+  Transport: "#a78bfa", // violet
+  Rent: "#f43f5e", // rose
+  Bills: "#facc15", // yellow
+  Airtime: "#4ade80", // green
+  Entertainment: "#e879f9", // fuchsia
+  Miscellaneous: "#64748b", // slate
+};
+
+const FALLBACK_PALETTE = [
+  "#38bdf8", // sky
+  "#fb923c", // orange-400
+  "#34d399", // emerald
+  "#c084fc", // purple-400
+  "#f472b6", // pink-400
+  "#fbbf24", // amber-400
+  "#2dd4bf", // teal-400
+  "#818cf8", // indigo-400
 ];
+
+function categoryColor(name: string): string {
+  if (CATEGORY_COLORS[name]) return CATEGORY_COLORS[name];
+  // Stable hash fallback for custom categories
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return FALLBACK_PALETTE[hash % FALLBACK_PALETTE.length];
+}
 
 function buildConfig(
   data: { categoryName: string; total: number }[],
 ): ChartConfig {
   return Object.fromEntries(
-    data.map((d, i) => [
+    data.map((d) => [
       d.categoryName,
-      { label: d.categoryName, color: PALETTE[i % PALETTE.length] },
+      { label: d.categoryName, color: categoryColor(d.categoryName) },
     ]),
   ) satisfies ChartConfig;
 }
@@ -37,11 +63,11 @@ export function CategoryBarChart({
   data: { categoryName: string; total: number }[];
 }) {
   const config = buildConfig(data);
+  const grandTotal = data.reduce((sum, d) => sum + d.total, 0);
 
-  // Recharts Pie expects a flat array with a `fill` on each entry.
-  const slices = data.map((d, i) => ({
+  const slices = data.map((d) => ({
     ...d,
-    fill: PALETTE[i % PALETTE.length],
+    fill: categoryColor(d.categoryName),
   }));
 
   return (
@@ -51,17 +77,26 @@ export function CategoryBarChart({
           content={
             <ChartTooltipContent
               nameKey="categoryName"
-              formatter={(value, name) => (
-                <span className="flex flex-col gap-0.5">
-                  <span className="font-semibold text-foreground">{name}</span>
-                  <span className="text-muted-foreground">
-                    Ksh{" "}
-                    {Number(value).toLocaleString("en-KE", {
-                      minimumFractionDigits: 2,
-                    })}
+              formatter={(value, name) => {
+                const pct =
+                  grandTotal > 0
+                    ? ((Number(value) / grandTotal) * 100).toFixed(1)
+                    : "0";
+                return (
+                  <span className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-foreground">
+                      {name}
+                    </span>
+                    <span className="text-muted-foreground">
+                      Ksh{" "}
+                      {Number(value).toLocaleString("en-KE", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </span>
+                    <span className="text-muted-foreground">{pct}%</span>
                   </span>
-                </span>
-              )}
+                );
+              }}
             />
           }
         />

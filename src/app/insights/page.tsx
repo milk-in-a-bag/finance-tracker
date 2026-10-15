@@ -18,6 +18,7 @@ type TopCounterparty = {
   counterparty: string;
   total: number;
   count: number;
+  category: string | null;
 };
 
 type SpendByType = {
@@ -39,10 +40,10 @@ type AvgByCategory = {
   avg: number;
 };
 
-type RecurringItem = {
+type RecurringPayee = {
   counterparty: string;
   count: number;
-  typicalAmount: number;
+  total: number;
   category: string | null;
 };
 
@@ -86,7 +87,7 @@ export default async function InsightsPage({
     spendByType = [],
     busiestDay = [],
     avgByCategory = [],
-    recurring = [],
+    recurringPayees = [],
     uncategorizedCount = 0,
     uncategorizedTotal = 0,
     totalTransactions = 0,
@@ -139,25 +140,15 @@ export default async function InsightsPage({
             )}
           </div>
           <div className="bg-card border border-border/60 rounded-xl px-5 py-4">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs text-muted-foreground">Recurring Payees</p>
-              <AllTimeBadge />
-            </div>
-            <p className="text-2xl font-bold text-violet-400">
-              {recurring.length}
+            <p className="text-xs text-muted-foreground mb-1">
+              Recurring Payees
             </p>
-            {sinceLabel && (
-              <p className="text-xs text-muted-foreground mt-1">
-                since {sinceLabel}
-              </p>
-            )}
+            <p className="text-2xl font-bold text-violet-400">
+              {recurringPayees.length}
+            </p>
           </div>
           <div
-            className={`bg-card border rounded-xl px-5 py-4 ${
-              unparsedMessages.length > 0
-                ? "border-rose-500/40 bg-rose-500/5"
-                : "border-border/60"
-            }`}
+            className={`bg-card border rounded-xl px-5 py-4 ${unparsedMessages.length > 0 ? "border-rose-500/40 bg-rose-500/5" : "border-border/60"}`}
           >
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs text-muted-foreground">Failed to Parse</p>
@@ -192,7 +183,7 @@ export default async function InsightsPage({
                 {unparsedMessages.length !== 1 ? "s" : ""}
               </span>
             </div>
-            <ul className="divide-y divide-border/40">
+            <ul className="divide-y divide-border/40 max-h-64 overflow-y-auto no-scrollbar">
               {(unparsedMessages as UnparsedMessage[]).map((m) => (
                 <li key={m.id} className="px-5 py-3 flex flex-col gap-1">
                   <p className="text-xs font-mono text-muted-foreground break-all leading-relaxed">
@@ -213,8 +204,9 @@ export default async function InsightsPage({
           </div>
         )}
 
-        {/* ── Row 1: Top spends + Top payees ────────────────────────────── */}
+        {/* ── Row 1: Largest transactions + Top payees ──────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* Largest transactions */}
           <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border/60">
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -224,126 +216,133 @@ export default async function InsightsPage({
             {topSpends.length === 0 ? (
               <EmptySection message={`No transactions ${periodLabel}`} />
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/60">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">
-                      Counterparty
-                    </th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-3 py-3 w-[90px]">
-                      Type
-                    </th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3 w-[110px]">
-                      Amount
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topSpends.map((t: TopSpend, i: number) => (
-                    <tr
-                      key={t.id}
-                      className="border-b border-border/40 hover:bg-accent/30 transition-colors"
-                    >
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground w-4 tabular-nums">
-                            {i + 1}
-                          </span>
-                          <div>
-                            <p className="font-medium truncate max-w-[160px]">
-                              {formatCounterparty(t.counterparty)}
-                            </p>
-                            {t.category && (
-                              <p className="text-xs text-muted-foreground">
-                                {t.category}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${TYPE_STYLES[t.type] ?? "bg-muted text-muted-foreground border-border"}`}
-                        >
-                          {t.type}
-                        </span>
-                      </td>
-                      <td className="text-right font-semibold tabular-nums px-5 py-3">
-                        Ksh {t.amount.toFixed(2)}
-                      </td>
+              <div className="max-h-[300px] overflow-y-auto no-scrollbar">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-card z-10">
+                    <tr className="border-b border-border/60">
+                      <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">
+                        Counterparty
+                      </th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-3 py-3 w-[90px]">
+                        Type
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3 w-[130px]">
+                        Amount
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {topSpends.map((t: TopSpend, i: number) => (
+                      <tr
+                        key={t.id}
+                        className="border-b border-border/40 hover:bg-accent/30 transition-colors"
+                      >
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground w-4 tabular-nums">
+                              {i + 1}
+                            </span>
+                            <div>
+                              <p className="font-medium truncate max-w-[160px]">
+                                {formatCounterparty(t.counterparty)}
+                              </p>
+                              {t.category && (
+                                <p className="text-xs text-muted-foreground">
+                                  {t.category}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 w-[90px]">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${TYPE_STYLES[t.type] ?? "bg-muted text-muted-foreground border-border"}`}
+                          >
+                            {t.type}
+                          </span>
+                        </td>
+                        <td className="text-right font-semibold tabular-nums whitespace-nowrap px-5 py-3 w-[130px]">
+                          Ksh {t.amount.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
+          {/* Top payees */}
           <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-border/60">
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground shrink-0">
                 Top Payees
               </p>
-            </div>
-            {concentrationPct > 0 && (
-              <div className="px-5 py-3 border-b border-border/60 bg-amber-500/5">
+              {concentrationPct > 0 && (
                 <p className="text-xs text-amber-400">
-                  <span className="font-semibold">
-                    {top3Names.slice(0, 3).map(formatCounterparty).join(", ")}
-                  </span>{" "}
-                  account for{" "}
+                  Account for{" "}
                   <span className="font-semibold">{concentrationPct}%</span> of
-                  spending {periodLabel}.
+                  spending {periodLabel}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
             {topCounterparties.length === 0 ? (
               <EmptySection message={`No transactions ${periodLabel}`} />
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/60">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">
-                      Counterparty
-                    </th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-3">
-                      Txns
-                    </th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3 w-[110px]">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topCounterparties.map((c: TopCounterparty, i: number) => (
-                    <tr
-                      key={c.counterparty}
-                      className="border-b border-border/40 hover:bg-accent/30 transition-colors"
-                    >
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground w-4 tabular-nums">
-                            {i + 1}
-                          </span>
-                          <span className="font-medium truncate max-w-[180px]">
-                            {formatCounterparty(c.counterparty)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="text-right tabular-nums text-muted-foreground px-3 py-3">
-                        {c.count}
-                      </td>
-                      <td className="text-right font-semibold tabular-nums px-5 py-3">
-                        Ksh {c.total.toFixed(2)}
-                      </td>
+              <div className="max-h-[300px] overflow-y-auto no-scrollbar">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-card z-10">
+                    <tr className="border-b border-border/60">
+                      <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">
+                        Counterparty
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-3 w-[60px]">
+                        Txns
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3 w-[130px]">
+                        Total
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {topCounterparties.map((c: TopCounterparty, i: number) => (
+                      <tr
+                        key={c.counterparty}
+                        className="border-b border-border/40 hover:bg-accent/30 transition-colors"
+                      >
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground w-4 tabular-nums">
+                              {i + 1}
+                            </span>
+                            <div>
+                              <p className="font-medium truncate max-w-[180px]">
+                                {formatCounterparty(c.counterparty)}
+                              </p>
+                              {c.category && (
+                                <p className="text-xs text-muted-foreground">
+                                  {c.category}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="text-right tabular-nums text-muted-foreground px-3 py-3 w-[60px]">
+                          {c.count}
+                        </td>
+                        <td className="text-right font-semibold tabular-nums whitespace-nowrap px-5 py-3 w-[130px]">
+                          Ksh {c.total.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
 
-        {/* ── Row 2: Spend by type + Avg per category ───────────────────── */}
+        {/* ── Row 2: Spend by type + Recurring payees ───────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div className="bg-card border border-border/60 rounded-xl p-5">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
@@ -357,6 +356,71 @@ export default async function InsightsPage({
           </div>
 
           <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Recurring Payees
+              </p>
+              <span className="text-xs text-muted-foreground">
+                2+ transactions
+              </span>
+            </div>
+            {recurringPayees.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+                <p className="text-sm">No recurring payees {periodLabel}</p>
+                <p className="text-xs text-muted-foreground/60">
+                  Payees you&apos;ve transacted with 2 or more times
+                </p>
+              </div>
+            ) : (
+              <div className="max-h-[300px] overflow-y-auto no-scrollbar">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-card z-10">
+                    <tr className="border-b border-border/60">
+                      <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">
+                        Counterparty
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-3 w-[60px]">
+                        Txns
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3 w-[130px]">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recurringPayees.map((r: RecurringPayee) => (
+                      <tr
+                        key={r.counterparty}
+                        className="border-b border-border/40 hover:bg-accent/30 transition-colors"
+                      >
+                        <td className="px-5 py-3">
+                          <p className="font-medium truncate max-w-[160px]">
+                            {formatCounterparty(r.counterparty)}
+                          </p>
+                          {r.category && (
+                            <p className="text-xs text-muted-foreground">
+                              {r.category}
+                            </p>
+                          )}
+                        </td>
+                        <td className="text-right tabular-nums px-3 py-3 text-violet-400 font-semibold w-[60px]">
+                          {r.count}×
+                        </td>
+                        <td className="text-right font-semibold tabular-nums whitespace-nowrap px-5 py-3 w-[130px]">
+                          Ksh {r.total.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Row 3: Avg per category ────────────────────────────────────── */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border/60">
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Average Transaction by Category
@@ -365,128 +429,53 @@ export default async function InsightsPage({
             {avgByCategory.length === 0 ? (
               <EmptySection message={`No transactions ${periodLabel}`} />
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/60">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">
-                      Category
-                    </th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-3">
-                      Txns
-                    </th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-3">
-                      Avg
-                    </th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {avgByCategory.map((c: AvgByCategory) => (
-                    <tr
-                      key={c.category}
-                      className="border-b border-border/40 hover:bg-accent/30 transition-colors"
-                    >
-                      <td className="px-5 py-3 font-medium">{c.category}</td>
-                      <td className="text-right tabular-nums text-muted-foreground px-3 py-3">
-                        {c.count}
-                      </td>
-                      <td className="text-right tabular-nums text-amber-400 font-semibold px-3 py-3">
-                        Ksh {c.avg.toFixed(2)}
-                      </td>
-                      <td className="text-right tabular-nums font-semibold px-5 py-3">
-                        Ksh {c.total.toFixed(2)}
-                      </td>
+              <div className="max-h-[300px] overflow-y-auto no-scrollbar">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-card z-10">
+                    <tr className="border-b border-border/60">
+                      <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">
+                        Category
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-3 w-[60px]">
+                        Txns
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3 w-[130px]">
+                        Avg
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {avgByCategory.map((c: AvgByCategory) => (
+                      <tr
+                        key={c.category}
+                        className="border-b border-border/40 hover:bg-accent/30 transition-colors"
+                      >
+                        <td className="px-5 py-3 font-medium">{c.category}</td>
+                        <td className="text-right tabular-nums text-muted-foreground px-3 py-3 w-[60px]">
+                          {c.count}
+                        </td>
+                        <td className="text-right tabular-nums text-amber-400 font-semibold whitespace-nowrap px-5 py-3 w-[130px]">
+                          Ksh {c.avg.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
 
         {/* ── All-time section (only on "all" period) ───────────────────── */}
         {period === "all" && (
-          <>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <div className="bg-card border border-border/60 rounded-xl p-5">
-                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-                  Activity by Day of Week
-                </p>
-                <ActivityByDayChart data={busiestDay} />
-              </div>
-
-              <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-border/60">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      Recurring Transactions
-                    </p>
-                    <span className="text-xs text-muted-foreground">
-                      {sinceLabel ? `since ${sinceLabel}` : ""} · 3+ txns within
-                      ±20%
-                    </span>
-                  </div>
-                </div>
-                {recurring.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
-                    <p className="text-sm">
-                      No recurring transactions detected yet
-                    </p>
-                    <p className="text-xs text-muted-foreground/60">
-                      Needs 3+ payments to the same payee within ±20% of each
-                      other
-                    </p>
-                  </div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border/60">
-                        <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">
-                          Counterparty
-                        </th>
-                        <th className="text-left text-xs font-medium text-muted-foreground px-3 py-3">
-                          Category
-                        </th>
-                        <th className="text-right text-xs font-medium text-muted-foreground px-3 py-3">
-                          ×
-                        </th>
-                        <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3">
-                          Typical
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recurring.map((r: RecurringItem) => (
-                        <tr
-                          key={r.counterparty}
-                          className="border-b border-border/40 hover:bg-accent/30 transition-colors"
-                        >
-                          <td className="px-5 py-3 font-medium truncate max-w-[140px]">
-                            {formatCounterparty(r.counterparty)}
-                          </td>
-                          <td className="px-3 py-3 text-muted-foreground text-xs">
-                            {r.category ?? (
-                              <span className="text-rose-400">
-                                Uncategorized
-                              </span>
-                            )}
-                          </td>
-                          <td className="text-right tabular-nums px-3 py-3 text-violet-400 font-semibold">
-                            {r.count}×
-                          </td>
-                          <td className="text-right font-semibold tabular-nums px-5 py-3">
-                            Ksh {r.typicalAmount.toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="bg-card border border-border/60 rounded-xl p-5">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+                Activity by Day of Week
+              </p>
+              <ActivityByDayChart data={busiestDay} />
             </div>
-          </>
+          </div>
         )}
       </main>
     </>
