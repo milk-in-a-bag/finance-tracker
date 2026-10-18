@@ -82,7 +82,7 @@ export default async function TransactionsPage({
               <table className="w-full min-w-[680px] text-sm">
                 <thead>
                   <tr className="border-b border-border/60">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3 w-[110px]">
+                    <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3 w-[130px]">
                       Date
                     </th>
                     <th className="text-left text-xs font-medium text-muted-foreground px-3 py-3">
@@ -105,7 +105,7 @@ export default async function TransactionsPage({
                       key={t.id}
                       className="border-b border-border/40 hover:bg-accent/30 transition-colors"
                     >
-                      <td className="text-muted-foreground tabular-nums px-5 py-3">
+                      <td className="text-muted-foreground tabular-nums whitespace-nowrap px-5 py-3">
                         {new Date(t.transactionDate).toLocaleDateString(
                           "en-GB",
                           {

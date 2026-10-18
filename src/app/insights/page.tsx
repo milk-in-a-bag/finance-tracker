@@ -380,7 +380,7 @@ export default async function InsightsPage({
                         Counterparty
                       </th>
                       <th className="text-right text-xs font-medium text-muted-foreground px-3 py-3 w-[60px]">
-                        Txns
+                        Transactions
                       </th>
                       <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3 w-[130px]">
                         Total
@@ -404,7 +404,7 @@ export default async function InsightsPage({
                           )}
                         </td>
                         <td className="text-right tabular-nums px-3 py-3 text-violet-400 font-semibold w-[60px]">
-                          {r.count}×
+                          {r.count}
                         </td>
                         <td className="text-right font-semibold tabular-nums whitespace-nowrap px-5 py-3 w-[130px]">
                           Ksh {r.total.toFixed(2)}
@@ -437,7 +437,7 @@ export default async function InsightsPage({
                         Category
                       </th>
                       <th className="text-right text-xs font-medium text-muted-foreground px-3 py-3 w-[60px]">
-                        Txns
+                        Transactions
                       </th>
                       <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3 w-[130px]">
                         Avg
@@ -464,19 +464,17 @@ export default async function InsightsPage({
               </div>
             )}
           </div>
-        </div>
 
-        {/* ── All-time section (only on "all" period) ───────────────────── */}
-        {period === "all" && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* Activity by day (only on "all" period) */}
+          {period === "all" && (
             <div className="bg-card border border-border/60 rounded-xl p-5">
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
                 Activity by Day of Week
               </p>
               <ActivityByDayChart data={busiestDay} />
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
     </>
   );
