@@ -57,7 +57,9 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ period?: string }>;
 }) {
-  const { period = "month" } = await searchParams;
+  const { period: rawPeriod = "month" } = await searchParams;
+  // "all" is not a valid dashboard period — fall back to month
+  const period = rawPeriod === "all" ? "month" : rawPeriod;
 
   const [summary, { transactions }, { categories }] = await Promise.all([
     getSummary(period),

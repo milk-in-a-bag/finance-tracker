@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-const PERIODS = [
+const DASHBOARD_PERIODS = [
   { value: "today", label: "Today" },
   { value: "week", label: "Week" },
   { value: "month", label: "Month" },
   { value: "year", label: "Year" },
+];
+
+const INSIGHTS_PERIODS = [
+  ...DASHBOARD_PERIODS,
   { value: "all", label: "All time" },
 ];
 
@@ -16,9 +20,12 @@ export function PeriodSwitcher({
   current: string;
   basePath?: string;
 }) {
+  const periods =
+    basePath === "/insights" ? INSIGHTS_PERIODS : DASHBOARD_PERIODS;
+
   return (
     <div className="flex items-center gap-1 bg-muted/50 border border-border/60 rounded-lg p-0.5">
-      {PERIODS.map((p) => (
+      {periods.map((p) => (
         <Link
           key={p.value}
           href={`${basePath}?period=${p.value}`}

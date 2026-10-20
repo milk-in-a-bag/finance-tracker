@@ -14,9 +14,14 @@ const chartConfig = {
 
 function buildTicks(data: { total: number }[]): number[] {
   const max = Math.max(...data.map((d) => d.total), 0);
-  const top = Math.ceil(max / 100) * 100;
+  if (max === 0) return [0];
+  // Pick a step size that gives ~5 ticks regardless of the max value
+  const rawStep = max / 5;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const step = Math.ceil(rawStep / magnitude) * magnitude;
+  const top = Math.ceil(max / step) * step;
   const ticks: number[] = [];
-  for (let i = 0; i <= top; i += 100) ticks.push(i);
+  for (let i = 0; i <= top; i += step) ticks.push(i);
   return ticks;
 }
 
