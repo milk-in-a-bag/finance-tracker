@@ -151,6 +151,61 @@ export async function GET(req: NextRequest) {
     existing.total += Number(t.amount);
     seriesMap.set(sortKey, existing);
   }
+
+  // Fill in zero-value buckets for every expected slot in the period so the
+  // chart doesn't skip days/hours/months where nothing was spent.
+  const nowEat = toEat(new Date());
+  if (period === "today") {
+    const currentHour = nowEat.getUTCHours();
+    for (let h = 0; h <= currentHour; h++) {
+      const sortKey = String(h).padStart(2, "0");
+      if (!seriesMap.has(sortKey)) {
+        const fakeDate = new Date(
+          Date.UTC(
+            nowEat.getUTCFullYear(),
+            nowEat.getUTCMonth(),
+            nowEat.getUTCDate(),
+            h,
+          ),
+        );
+        const label = fakeDate.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          timeZone: "UTC",
+        });
+        seriesMap.set(sortKey, { label, total: 0 });
+      }
+    }
+  } else if (period === "week" || period === "month" || period === "all") {
+    if (start) {
+      const cursor = new Date(toEat(start).setUTCHours(0, 0, 0, 0));
+      const endEat = toEat(new Date());
+      while (cursor <= endEat) {
+        const sortKey = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, "0")}-${String(cursor.getUTCDate()).padStart(2, "0")}`;
+        if (!seriesMap.has(sortKey)) {
+          const label = cursor.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            timeZone: "UTC",
+          });
+          seriesMap.set(sortKey, { label, total: 0 });
+        }
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+    }
+  } else if (period === "year") {
+    for (let m = 0; m <= nowEat.getUTCMonth(); m++) {
+      const sortKey = String(m).padStart(2, "0");
+      if (!seriesMap.has(sortKey)) {
+        const fakeDate = new Date(Date.UTC(nowEat.getUTCFullYear(), m, 1));
+        const label = fakeDate.toLocaleDateString("en-US", {
+          month: "short",
+          timeZone: "UTC",
+        });
+        seriesMap.set(sortKey, { label, total: 0 });
+      }
+    }
+  }
+
   const timeSeries = [...seriesMap.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, v]) => v);
